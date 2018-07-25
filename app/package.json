@@ -20,7 +20,8 @@
     "distlibs": "sh scripts/distlibs.sh",
     "pages": "sh scripts/deploy.sh",
     "start": "webpack --watch",
-    "build": "webpack -p"
+    "build": "webpack -p",
+    "dev-server": "webpack-dev-server --open"
   },
   "dependencies": {
     "@types/codemirror": "^0.0.38",
@@ -67,6 +68,9 @@
     "tslint": "^3.15.1",
     "webpack": "^2.3.3",
     "webpack-dev-server": "^2.4.2"
+  },
+  "resolutions": {
+    "electron-download": "4.1.0"
   },
   "nyc": {
     "extension": [
