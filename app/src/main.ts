@@ -18,7 +18,7 @@ import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
 // Inception
-import Logger from "./collector/logger"
+import Logger, { Message } from "./collector/logger"
 import { TreeCollector } from "./instrumentation/rxjs-5.x.x/collector"
 import Instrumentation from "./instrumentation/rxjs-5.x.x/instrumentation"
 
@@ -116,7 +116,39 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.switchMap(collector => {
   if (collector && collector.data) {
     return Rx.Observable.of(0)
       .flatMap(_ => {
-        let vis = new Visualizer(new Grapher(collector.data))
+        let data = new (class DataSourceWrapper implements DataSource {
+          stream = collector.data.dataObs
+          .do(
+            x => console.log('dataObs Do Next:', x),
+            err => console.log('dataObs Do Error:', err),
+            () => console.log('dataObs Do Completed')
+          )
+
+          consoleOutput = collector.data.dataObs
+          .filter(x => (x as any) == "reset")
+          .switchMap(function(x) {
+            return collector.data.dataObs
+            .filter(x => (x as any) != "reset")
+            .scan(function(acc: String, v) {
+              let result = acc
+              if (acc.length != 0) {
+                result = result + ","
+              }
+              result = result + JSON.stringify(v)
+              return result
+            }, "")
+            .debounce(() => Rx.Observable.interval(1000))
+            .do(x => console.log(x))
+            .ignoreElements()
+            .map(function(x) {
+              return {id: 1, type: "node", node: {}} as Message
+            })
+            }
+          )
+          dataObs = this.stream.merge(this.consoleOutput)
+          })
+
+        let vis = new Visualizer(new Grapher(data))
         return vis.stream(AnalyticsObserver)
       })
       .catch(errorHandler)
