@@ -28,7 +28,7 @@ repositories {
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
     compile 'io.reactivex:rxjava:1.1.7'
-    compile project(":collector")
+    compile project(":rxfiddle-jvm-collector")
 }
 
 task(runJavaExecNormal, dependsOn: 'classes', type: JavaExec) {
