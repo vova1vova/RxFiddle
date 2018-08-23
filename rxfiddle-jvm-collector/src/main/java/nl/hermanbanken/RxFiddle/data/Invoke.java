@@ -26,8 +26,8 @@ public class Invoke implements RxFiddleEvent {
   }
 
   public final Object target;
-  final String className;
-  final String methodName;
+  public final String className;
+  public final String methodName;
   final Label label;
   public Kind kind;
 

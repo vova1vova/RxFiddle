@@ -21,6 +21,11 @@ package nl.hermanbanken.rxfiddle;
 import jdk.internal.org.objectweb.asm.Type;
 import nl.hermanbanken.rxfiddle.data.*;
 import nl.hermanbanken.rxfiddle.data.Invoke.Kind;
+import nl.hermanbanken.rxfiddle.js.collector.TreePoster;
+import nl.hermanbanken.rxfiddle.js.oct.ITreeLogger;
+import nl.hermanbanken.rxfiddle.js.oct.MetaWithCalls;
+import nl.hermanbanken.rxfiddle.js.oct.MetaWithNames;
+import nl.hermanbanken.rxfiddle.js.oct.ObservableTree;
 import nl.hermanbanken.rxfiddle.visualiser.StdOutVisualizer;
 import nl.hermanbanken.rxfiddle.visualiser.Visualizer;
 
@@ -37,8 +42,9 @@ import java.util.regex.Pattern;
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class Hook {
-
   public static Visualizer visualizer = new StdOutVisualizer();
+  public static ITreeLogger logger = new TreePoster();
+
   public static final Stack<Label> labels = new Stack<>();
   public static final Stack<Invoke> invokes = new Stack<>();
 
@@ -49,8 +55,11 @@ public class Hook {
 
   public static HashSet<Object> followed = new HashSet<>();
 
+  private static long nextId = 1;
+
   public static void reset() {
     visualizer = new StdOutVisualizer();
+
     labels.clear();
     invokes.clear();
     currentLabel = null;
@@ -87,6 +96,8 @@ public class Hook {
       Object subject, String className, String methodName, boolean fromLambda) {
     if (className.startsWith("rx/plugins") || className.startsWith("rx/internal")) return;
 
+    System.out.println("rx before -> " + log(className, methodName));
+
     Invoke invoke;
     // Runtime events
     if (followed.contains(subject) && RUNTIME.test(methodName)) {
@@ -99,7 +110,7 @@ public class Hook {
               Kind.Runtime);
     }
     // Static setup events
-    else if (!labels.isEmpty() && subject == null && className.contains("Observable")) {
+    else if (!labels.isEmpty() && subject == null && isObservable(className)) {
       invoke = new Invoke(null, className, methodName, labels.peek(), Kind.Setup);
     }
     // Instance setup events
@@ -108,28 +119,59 @@ public class Hook {
       invoke = new Invoke(subject, className, methodName, labels.peek(), Kind.Setup);
     } else {
       System.err.printf("Ignored %s %s %s %b\n", subject, className, methodName, fromLambda);
+      System.out.println("rx before <- " + log(className, methodName));
       return;
     }
     invokes.push(invoke);
     visualizer.logInvoke(invoke);
+
+    System.out.println("rx before <- " + log(className, methodName));
+  }
+
+  private static boolean isObservable(String className) {
+    return className.contains("Observable");
   }
 
   /** Tracing **/
   public static void enter(String className, String methodName, String file, int lineNumber) {
     Label label = new Label(className, methodName, file, lineNumber);
+
+    System.out.println("before ->" + label);
+
     labels.add(label);
+
+    System.out.println("before <-" + label);
   }
 
   public static void leave(Object result) {
-    labels.pop();
-    visualizer.logResult(new InvokeResult(invokes.isEmpty() ? null : invokes.pop(), result));
+    Label label = labels.pop();
+
+    System.out.println("after ->" + label);
+
+    Invoke invoke = invokes.isEmpty() ? null : invokes.pop();
+
+    visualizer.logResult(new InvokeResult(invoke, result));
+
+    if (invoke != null && isObservable(result.getClass().getSimpleName())) {
+      ObservableTree tree = new ObservableTree(nextId++, logger, result.getClass().getSimpleName());
+      tree.addMeta(new MetaWithCalls(invoke.methodName));
+    }
+
     follow(result);
+
+    System.out.println("after <-" + label);
   }
+
+
 
   public static void follow(Object obj) {
     if (obj == null) return;
     if (followed.add(obj)) {
       visualizer.logFollow(new Follow(obj));
     }
+  }
+
+  private static String log(String className, String methodName) {
+    return String.format("%s.%s", className, methodName);
   }
 }
