@@ -1,4 +1,5 @@
 import { EdgeType, ISchedulerInfo, ITreeLogger, NodeType } from "../oct/oct"
+import { treeLog } from "../collector/logger";
 
 export default class TreePoster implements ITreeLogger {
   private post: (message: any) => void
@@ -13,18 +14,22 @@ export default class TreePoster implements ITreeLogger {
     }
   }
   public addNode(id: string, type: NodeType, scheduler?: ISchedulerInfo): void {
+    treeLog(id, "addNode id:" + id + " type:" + type + " scheduler:" + scheduler)
     this.post({ id, type, scheduler })
   }
   public addMeta(id: string, meta: any): void {
+    treeLog(id, "addMeta id:" + id + " meta:" + JSON.stringify(meta))
     this.post({ id, meta })
   }
   public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
     this.post({ v, w, type, meta })
   }
   public addScheduler(id: string, scheduler: ISchedulerInfo): void {
+    treeLog(id, "addScheduler id:" + id + " scheduler:" + scheduler)
     this.post({ id, scheduler })
   }
   public addContraction(id: string, nodes: string[]): void {
+    treeLog(id, "addContraction id:" + id + " nodes:" + nodes)
     this.post({ id, contract: nodes })
   }
 

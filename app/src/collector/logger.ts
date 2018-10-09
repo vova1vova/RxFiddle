@@ -1,5 +1,6 @@
 import { EdgeType, ISchedulerInfo, ITreeLogger, NodeType } from "../oct/oct"
 import { IEvent } from "./event"
+import { ICallRecord, ICallStart, callRecordType } from "./callrecord"
 
 export default class Logger implements ITreeLogger {
   // tslint:disable-next-line:no-constructor-vars
@@ -80,6 +81,30 @@ function _formatArguments(args: IArguments | any[], levels: number = 2, depth: n
 
 export function formatArguments(args: IArguments | any[]): string {
   return _formatArguments(args)
+}
+
+export function printCall(record?: ICallStart): string {
+  if (typeof record === "undefined") {
+    return ""
+  }
+
+  return `${record.subjectName}.${record.method}(${formatArguments(record.arguments)})`
+}
+
+namespace ColouredLogger {
+  export let treeColours: string[] = [
+    "#D32F2F", "#F57C00", "#FBC02D", "#388E3C", "#0288D1", "#7B1FA2", 
+    "#E57373", "#FFB74D", "#FFF176", "#81C784", "#4FC3F7", "#BA68C8"]
+}
+
+export function treeLog(id: String, msg: String) {
+  let colour = ColouredLogger.treeColours[Number(id) - 1]
+  console.log('%c' + msg, `color: ${colour}`);
+}
+export function instrumentationLog(depth: number, msg: String) {
+  let padding = new Array(depth + 1).join("  ")
+  let colour = (depth % 2 == 0) ? "#37474F" : "#B0BEC5"
+  console.log(padding + '%c' + msg, `color: ${colour}`);
 }
 
 export type Node = {

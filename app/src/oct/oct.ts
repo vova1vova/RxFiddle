@@ -1,4 +1,5 @@
 import { IEvent } from "../collector/event"
+import { treeLog } from "../collector/logger";
 
 export type Id = string
 
@@ -56,6 +57,7 @@ export class ObservableTree implements IObservableTree {
     this.scheduler = scheduler
     if (name) { this.names = [name] }
     if (logger) {
+      treeLog(id, "ObservableTree")  
       this.logger = logger
       logger.addNode(id, "observable", scheduler && Object.assign({}, scheduler))
       logger.addMeta(id, { names: name })
@@ -65,7 +67,10 @@ export class ObservableTree implements IObservableTree {
   public setSources(sources: IObservableTree[]): IObservableTree {
     this.sources = sources
     if (this.logger) {
-      sources.forEach(s => this.logger.addEdge(s.id, this.id, "addSource", { label: "source" }))
+      sources.forEach(s => {
+        treeLog(this.id, "addEdge v:" + s.id + " w:" + this.id + " type:" + "addSource" + " meta:" + JSON.stringify({ label: "source" }))
+        this.logger.addEdge(s.id, this.id, "addSource", { label: "source" })
+      })
     }
     return this
   }
@@ -102,6 +107,7 @@ export class ObserverTree implements IObserverTree {
     if (name) { this.names = [name] }
     if (logger) {
       this.logger = logger
+      treeLog(id, "ObserverTree")  
       logger.addNode(id, "observer")
       logger.addMeta(id, { names: name })
     }
@@ -114,7 +120,10 @@ export class ObserverTree implements IObserverTree {
     this.sink = sinks[0]
     sinks.forEach(s => s.addInflow(this))
     if (this.logger) {
-      sinks.forEach(s => this.logger.addEdge(this.id, s.id, "addObserverDestination", { label: "destination" }))
+      sinks.forEach(s => {
+        treeLog(this.id, "addEdge v:" + this.id + " w:" + s.id + " type:" + "addObserverDestination" + " meta:" + JSON.stringify({ label: "destination" }))
+        this.logger.addEdge(this.id, s.id, "addObserverDestination", { label: "destination" })
+      })
     }
     return this
   }
@@ -123,6 +132,7 @@ export class ObserverTree implements IObserverTree {
     this.outer = outer
     outer.addInflow(this)
     if (this.logger) {
+      treeLog(this.id, "addEdge v:" + this.id + " w:" + outer.id + " type:" + "addObserverOuter" + " meta:" + JSON.stringify({ label: "outer" }))
       this.logger.addEdge(this.id, outer.id, "addObserverOuter", { label: "outer" })
     }
     return this
@@ -149,7 +159,10 @@ export class ObserverTree implements IObserverTree {
     }
     this.observable = observable[0]
     if (this.logger) {
-      observable.forEach(o => this.logger.addEdge(o.id, this.id, "setObserverSource", { label: "observable" }))
+      observable.forEach(o => {
+        treeLog(this.id, "addEdge v:" + o.id + " w:" + this.id + " type:" + "setObserverSource" + " meta:" + JSON.stringify({ label: "observable" }))
+        this.logger.addEdge(o.id, this.id, "setObserverSource", { label: "observable" })
+      })
     }
     return this
   }

@@ -2,6 +2,7 @@
 // tslint:disable:object-literal-key-quotes
 import { ICallRecord, ICallStart } from "../../collector/callrecord"
 import { RxCollector } from "../../collector/ICollector"
+import { formatArguments, printCall, instrumentationLog } from "../../collector/logger"
 
 // Allow either external scoped Rx or local imported Rx to be used
 import * as RxType from "rxjs"
@@ -66,6 +67,7 @@ export default class Instrumentation {
   public callstacks = [] as ICallRecord[][]
 
   public ignore = false
+  public depth = -1
 
   /* tslint:disable:only-arrow-functions */
   /* tslint:disable:no-string-literal */
@@ -107,10 +109,18 @@ export default class Instrumentation {
 
     this.callstacks.push(this.open.slice(0))
 
+    // console.dir(call)
+    this.depth++
+    
+    instrumentationLog(this.depth, "instrumented " + printCall(call))
+    
     // Actual method
     this.ignore = true
+    instrumentationLog(this.depth, "before -> ")
     let instanceLogger = this.collector.before(call, this.open.slice(0, -1))
+    instrumentationLog(this.depth, "before <- ")
     this.ignore = false
+    instrumentationLog(this.depth, "apply " + printCall(call))
     let returned = target.apply(call.subject, [].map.call(
       call.arguments,
       this.wrap.bind(this)
@@ -120,8 +130,12 @@ export default class Instrumentation {
     end.returned = returned
 
     this.ignore = true
+    instrumentationLog(this.depth, "after -> ")
     instanceLogger.after(end)
+    instrumentationLog(this.depth, "after <- ")
     this.ignore = false;
+
+    this.depth--
 
     // find more
     ([end.returned])
